@@ -18,7 +18,7 @@ def recognition(video_file_path, face_classifier_file_path, skipped_duration, fr
     sp = dlib.shape_predictor(models.pose_predictor_model_location())
     face_rec = dlib.face_recognition_model_v1(models.face_recognition_model_location())
 
-    font = ImageFont.truetype('C:\\Users\\cai\\AppData\\Local\\Microsoft\\Windows\\Fonts\\SourceHanSansSC-Regular.otf', 14)  # todo 改成思源黑体
+    font = ImageFont.truetype('‪C:\\Windows\\Fonts\\msyh.ttc', 14)  # 注意改成开源字体
 
     with open(face_classifier_file_path, 'rb') as infile:
         (model, class_names) = pickle.load(infile)
