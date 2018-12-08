@@ -13,7 +13,7 @@ def get_formatted_time(seconds):
     elif m > 0:
         return '%02d:%02d' % (m, s)
     else:
-        return '%02d' % s
+        return '00:%02d' % s
 
 
 def get_duration_str(start_frame_num, end_frame_num, frame_rate):
