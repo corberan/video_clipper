@@ -93,7 +93,7 @@ def recognition(video_file_path, face_classifier_file_path, skipped_duration, fr
 @click.argument('face_classifier_file_path')
 @click.option('--skipped_duration', default=None, type=int, help='seconds')
 @click.option('--frame_scale_rate', default=None, type=float, help='for reducing memory usage')
-@click.option('--save_result', default=False, help='save recognition result video')
+@click.option('--save_result', default=False, type=bool, help='save recognition result video')
 def main(video_file_path, face_classifier_file_path, skipped_duration, frame_scale_rate, save_result):
     if not os.path.isfile(video_file_path):
         print('\"%s\" not found' % video_file_path)
