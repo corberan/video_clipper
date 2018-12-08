@@ -80,7 +80,7 @@ def cluster(video_file_path, faces_output_path, skipped_duration, ending_time, s
 @click.argument('faces_output_path')
 @click.option('--skipped_duration', default=None, type=int, help='seconds')
 @click.option('--ending_time', default=None, type=int, help='seconds')
-@click.option('--step_duration', default=None, type=int, help='seconds')
+@click.option('--step_duration', default=None, type=float, help='seconds')
 @click.option('--frame_scale_rate', default=None, type=float, help='for reducing memory usage')
 def main(video_file_path, faces_output_path, skipped_duration, ending_time, step_duration, frame_scale_rate):
     if not os.path.isfile(video_file_path):
