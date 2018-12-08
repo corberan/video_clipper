@@ -13,7 +13,7 @@ import numpy as np
 import click
 
 
-def recognition(video_file_path, face_classifier_file_path, skipped_duration, frame_scale_rate):
+def recognition(video_file_path, face_classifier_file_path, skipped_duration, frame_scale_rate, save_result):
     cnn_face_detector = dlib.cnn_face_detection_model_v1(models.cnn_face_detector_model_location())
     sp = dlib.shape_predictor(models.pose_predictor_model_location())
     face_rec = dlib.face_recognition_model_v1(models.face_recognition_model_location())
@@ -24,6 +24,20 @@ def recognition(video_file_path, face_classifier_file_path, skipped_duration, fr
         (model, class_names) = pickle.load(infile)
 
     vid = cv2.VideoCapture(video_file_path)
+
+    video_writer = None
+    if save_result:
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        video_fps = vid.get(5)
+        video_width = vid.get(3)
+        video_height = vid.get(4)
+        if frame_scale_rate is not None:
+            video_width = int(video_width * frame_scale_rate)
+            video_height = int(video_height * frame_scale_rate)
+
+        video_writer = cv2.VideoWriter(
+            os.path.join(os.path.dirname(face_classifier_file_path), 'face_recognition_result.mp4'), fourcc,
+            video_fps, (video_width, video_height))
 
     if skipped_duration is not None:
         vid.set(0, skipped_duration * 1000)
@@ -45,7 +59,7 @@ def recognition(video_file_path, face_classifier_file_path, skipped_duration, fr
             for i, d in enumerate(dets):
                 shape = sp(frame_rgb, d.rect)
                 face_descriptor = face_rec.compute_face_descriptor(frame_rgb, shape, 50)
-                face_descriptors[i:i+1:] = np.asarray(face_descriptor)
+                face_descriptors[i:i + 1:] = np.asarray(face_descriptor)
             predict_labels = model.predict(face_descriptors)
             predictions = model.predict_proba(face_descriptors)
             best_class_indices = np.argmax(predictions, axis=1)
@@ -63,10 +77,14 @@ def recognition(video_file_path, face_classifier_file_path, skipped_duration, fr
             frame = cv2.cvtColor(np.asarray(img), cv2.COLOR_RGB2BGR)
 
         cv2.imshow(video_file_path, frame)
+        if save_result:
+            video_writer.write(frame)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
 
     vid.release()
+    if save_result:
+        video_writer.release()
     cv2.destroyAllWindows()
 
 
@@ -75,7 +93,8 @@ def recognition(video_file_path, face_classifier_file_path, skipped_duration, fr
 @click.argument('face_classifier_file_path')
 @click.option('--skipped_duration', default=None, type=int, help='seconds')
 @click.option('--frame_scale_rate', default=None, type=float, help='for reducing memory usage')
-def main(video_file_path, face_classifier_file_path, skipped_duration, frame_scale_rate):
+@click.option('--save_result', default=False, help='save recognition result video')
+def main(video_file_path, face_classifier_file_path, skipped_duration, frame_scale_rate, save_result):
     if not os.path.isfile(video_file_path):
         print('\"%s\" not found' % video_file_path)
         return
@@ -83,7 +102,7 @@ def main(video_file_path, face_classifier_file_path, skipped_duration, frame_sca
         print('\"%s\" not found' % face_classifier_file_path)
         return
 
-    recognition(video_file_path, face_classifier_file_path, skipped_duration, frame_scale_rate)
+    recognition(video_file_path, face_classifier_file_path, skipped_duration, frame_scale_rate, save_result)
 
 
 if __name__ == '__main__':
