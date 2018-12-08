@@ -23,7 +23,8 @@ def get_duration_str(start_frame_num, end_frame_num, frame_rate):
 def clip(video_file_path, face_classes_path, split_blank_duration):
     items = os.listdir(face_classes_path)
     if len(items) == 0:
-        raise Exception('no items in path')
+        print('no items in path')
+        return
 
     class_names = OrderedDict()
     for item in items:
@@ -85,7 +86,7 @@ def clip(video_file_path, face_classes_path, split_blank_duration):
 @click.command()
 @click.argument('video_file_path')
 @click.argument('face_classes_path')
-@click.argument('split_blank_duration', type=int)
+@click.argument('split_blank_duration', type=float)
 def main(video_file_path, face_classes_path, split_blank_duration):
     if not os.path.isfile(video_file_path):
         print('\"%s\" not found' % video_file_path)
