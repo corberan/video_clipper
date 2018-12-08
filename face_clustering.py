@@ -24,17 +24,17 @@ def cluster(video_file_path, faces_output_path, skipped_duration, ending_time, s
     # 使用 pims + pyav 来读取视频，不会将视频加载到内存中，避免出现处理体积较大的视频时内存不足的情况
     vid = pims.Video(video_file_path)
 
-    if skipped_duration is None:
+    if skipped_duration is None or skipped_duration <= 0:
         skipped_frames_count = 0
     else:
         skipped_frames_count = int(vid.frame_rate * skipped_duration)
 
-    if ending_time is None:
+    if ending_time is None or ending_time <= 0:
         ending_frames_num = len(vid)
     else:
         ending_frames_num = min(int(vid.frame_rate * ending_time), len(vid))
 
-    if step_duration is None:
+    if step_duration is None or step_duration <= 0:
         step_frames_count = 1
     else:
         step_frames_count = int(vid.frame_rate * step_duration)
