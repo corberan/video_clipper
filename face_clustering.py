@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+import api
 import models
 import os
 import shutil
@@ -16,8 +16,13 @@ import dlib
 from tqdm import tqdm
 
 
-def cluster(video_file_path, faces_output_path, skipped_duration, ending_time, step_duration, frame_scale_rate):
-    cnn_face_detector = dlib.cnn_face_detection_model_v1(models.cnn_face_detector_model_location())
+def cluster(video_file_path, faces_output_path, skipped_duration, ending_time, step_duration, frame_scale_rate,
+            gpu_memory_fraction, model):
+    if model == 'mtcnn':
+        face_detector = api.mtcnn_face_detector(gpu_memory_fraction)
+    else:
+        face_detector = api.dlib_cnn_face_detector(models.cnn_face_detector_model_location())
+
     sp = dlib.shape_predictor(models.pose_predictor_model_location())
     face_rec = dlib.face_recognition_model_v1(models.face_recognition_model_location())
 
@@ -46,10 +51,10 @@ def cluster(video_file_path, faces_output_path, skipped_duration, ending_time, s
         if frame_scale_rate is not None:
             frame = dlib.resize_image(frame, scale=frame_scale_rate)
 
-        dets = cnn_face_detector(frame, 1)
-        for i, d in enumerate(dets):
-            shape = sp(frame, d.rect)
-            face_descriptor = face_rec.compute_face_descriptor(frame, shape, 100)
+        dets = face_detector(frame, 1)
+        for i, rect in enumerate(dets):
+            shape = sp(frame, rect)
+            face_descriptor = face_rec.compute_face_descriptor(frame, shape, 1)
             #
             face_id = '%d_%d' % (frame_num, i)
             face_to_descriptor[face_id] = face_descriptor
@@ -82,7 +87,10 @@ def cluster(video_file_path, faces_output_path, skipped_duration, ending_time, s
 @click.option('--ending_time', default=None, type=int, help='seconds')
 @click.option('--step_duration', default=None, type=float, help='seconds')
 @click.option('--frame_scale_rate', default=None, type=float, help='for reducing memory usage')
-def main(video_file_path, faces_output_path, skipped_duration, ending_time, step_duration, frame_scale_rate):
+@click.option('--gpu_memory_fraction', default=0.5, type=float)
+@click.option('--model', default=None, type=str)
+def main(video_file_path, faces_output_path, skipped_duration, ending_time, step_duration, frame_scale_rate,
+         gpu_memory_fraction, model):
     if not os.path.isfile(video_file_path):
         print('\"%s\" not found' % video_file_path)
         return
@@ -90,7 +98,8 @@ def main(video_file_path, faces_output_path, skipped_duration, ending_time, step
         print('\"%s\" not exists' % faces_output_path)
         return
 
-    cluster(video_file_path, faces_output_path, skipped_duration, ending_time, step_duration, frame_scale_rate)
+    cluster(video_file_path, faces_output_path, skipped_duration, ending_time, step_duration, frame_scale_rate,
+            gpu_memory_fraction, model)
 
 
 if __name__ == '__main__':
