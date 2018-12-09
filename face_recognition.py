@@ -1,3 +1,4 @@
+import api
 import models
 import os
 
@@ -13,8 +14,13 @@ import numpy as np
 import click
 
 
-def recognition(video_file_path, face_classifier_file_path, skipped_duration, frame_scale_rate, save_result):
-    cnn_face_detector = dlib.cnn_face_detection_model_v1(models.cnn_face_detector_model_location())
+def recognition(video_file_path, face_classifier_file_path, skipped_duration, frame_scale_rate, save_result,
+                gpu_memory_fraction, model):
+    if model == 'mtcnn':
+        face_detector = api.mtcnn_face_detector(gpu_memory_fraction)
+    else:
+        face_detector = api.dlib_cnn_face_detector(models.cnn_face_detector_model_location())
+
     sp = dlib.shape_predictor(models.pose_predictor_model_location())
     face_rec = dlib.face_recognition_model_v1(models.face_recognition_model_location())
 
@@ -52,13 +58,13 @@ def recognition(video_file_path, face_classifier_file_path, skipped_duration, fr
 
         frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
-        dets = cnn_face_detector(frame_rgb, 1)
-        if len(dets) > 0:
-            face_descriptors = np.zeros((len(dets), 128))
-            # face_descriptors = []
-            for i, d in enumerate(dets):
-                shape = sp(frame_rgb, d.rect)
-                face_descriptor = face_rec.compute_face_descriptor(frame_rgb, shape, 50)
+        dets = face_detector(frame_rgb, 1)
+        dets_size = len(dets)
+        if dets_size > 0:
+            face_descriptors = np.zeros((dets_size, 128))
+            for i, rect in enumerate(dets):
+                shape = sp(frame_rgb, rect)
+                face_descriptor = face_rec.compute_face_descriptor(frame_rgb, shape, 1)
                 face_descriptors[i:i + 1:] = np.asarray(face_descriptor)
             predict_labels = model.predict(face_descriptors)
             predictions = model.predict_proba(face_descriptors)
@@ -68,10 +74,10 @@ def recognition(video_file_path, face_classifier_file_path, skipped_duration, fr
             img = Image.fromarray(frame_rgb)
             draw = ImageDraw.Draw(img)
 
-            for i, d in enumerate(dets):
+            for i, rect in enumerate(dets):
                 text = '{}: {:.2%}'.format(class_names[predict_labels[i]], best_class_probabilities[i])
-                draw.text((d.rect.left() + 2, d.rect.bottom() + 2), text, font=font, fill=(255, 255, 000))
-                draw.rectangle([(d.rect.left(), d.rect.top()), (d.rect.right(), d.rect.bottom())],
+                draw.text((rect.left() + 2, rect.bottom() + 2), text, font=font, fill=(255, 255, 000))
+                draw.rectangle([(rect.left(), rect.top()), (rect.right(), rect.bottom())],
                                outline=(255, 255, 0))
 
             frame = cv2.cvtColor(np.asarray(img), cv2.COLOR_RGB2BGR)
@@ -94,7 +100,10 @@ def recognition(video_file_path, face_classifier_file_path, skipped_duration, fr
 @click.option('--skipped_duration', default=None, type=int, help='seconds')
 @click.option('--frame_scale_rate', default=None, type=float, help='for reducing memory usage')
 @click.option('--save_result', default=False, type=bool, help='save recognition result video')
-def main(video_file_path, face_classifier_file_path, skipped_duration, frame_scale_rate, save_result):
+@click.option('--gpu_memory_fraction', default=0.5, type=float)
+@click.option('--model', default=None, type=str)
+def main(video_file_path, face_classifier_file_path, skipped_duration, frame_scale_rate, save_result,
+         gpu_memory_fraction, model):
     if not os.path.isfile(video_file_path):
         print('\"%s\" not found' % video_file_path)
         return
@@ -102,7 +111,8 @@ def main(video_file_path, face_classifier_file_path, skipped_duration, frame_sca
         print('\"%s\" not found' % face_classifier_file_path)
         return
 
-    recognition(video_file_path, face_classifier_file_path, skipped_duration, frame_scale_rate, save_result)
+    recognition(video_file_path, face_classifier_file_path, skipped_duration, frame_scale_rate, save_result,
+                gpu_memory_fraction, model)
 
 
 if __name__ == '__main__':
