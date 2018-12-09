@@ -1,9 +1,10 @@
+tensorflow
 Pillow
 scikit-learn
 numpy
 click
 dlib>=19.16.99
 tqdm
-opencv-python
+opencv
 av
 pims!=0.4.1
