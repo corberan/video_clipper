@@ -58,29 +58,36 @@ def recognition(video_file_path, face_classifier_file_path, skipped_duration, fr
 
         frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
-        dets = face_detector(frame_rgb, 1)
-        dets_size = len(dets)
-        if dets_size > 0:
-            face_descriptors = np.zeros((dets_size, 128))
-            for i, rect in enumerate(dets):
-                shape = sp(frame_rgb, rect)
-                face_descriptor = face_rec.compute_face_descriptor(frame_rgb, shape, 1)
-                face_descriptors[i:i + 1:] = np.asarray(face_descriptor)
-            predict_labels = model.predict(face_descriptors)
-            predictions = model.predict_proba(face_descriptors)
-            best_class_indices = np.argmax(predictions, axis=1)
-            best_class_probabilities = predictions[np.arange(len(best_class_indices)), best_class_indices]
+        for batch_index, (frame_dets, _) in enumerate(face_detector([frame_rgb], 0)):
+            dets_size = len(frame_dets)
+            if dets_size > 0:
+                face_descriptors = np.zeros((dets_size, 128))
+                for i, det in enumerate(frame_dets):
+                    if type(det) == dlib.rectangle:
+                        shape = sp(frame_rgb, det)
+                    else:
+                        shape = sp(frame_rgb, det.rect)
+                    face_descriptor = face_rec.compute_face_descriptor(frame_rgb, shape, 1)
+                    face_descriptors[i:i + 1:] = np.asarray(face_descriptor)
+                predict_labels = model.predict(face_descriptors)
+                predictions = model.predict_proba(face_descriptors)
+                best_class_indices = np.argmax(predictions, axis=1)
+                best_class_probabilities = predictions[np.arange(len(best_class_indices)), best_class_indices]
 
-            img = Image.fromarray(frame_rgb)
-            draw = ImageDraw.Draw(img)
+                img = Image.fromarray(frame_rgb)
+                draw = ImageDraw.Draw(img)
 
-            for i, rect in enumerate(dets):
-                text = '{}: {:.2%}'.format(class_names[predict_labels[i]], best_class_probabilities[i])
-                draw.text((rect.left() + 2, rect.bottom() + 2), text, font=font, fill=(255, 255, 000))
-                draw.rectangle([(rect.left(), rect.top()), (rect.right(), rect.bottom())],
-                               outline=(255, 255, 0))
+                for i, det in enumerate(frame_dets):
+                    text = '{}: {:.2%}'.format(class_names[predict_labels[i]], best_class_probabilities[i])
+                    if type(det) == dlib.rectangle:
+                        rect = det
+                    else:
+                        rect = det.rect
+                    draw.text((rect.left() + 2, rect.bottom() + 2), text, font=font, fill=(255, 0, 0))
+                    draw.rectangle([(rect.left(), rect.top()), (rect.right(), rect.bottom())],
+                                   outline=(255, 0, 0))
 
-            frame = cv2.cvtColor(np.asarray(img), cv2.COLOR_RGB2BGR)
+                frame = cv2.cvtColor(np.asarray(img), cv2.COLOR_RGB2BGR)
 
         cv2.imshow(video_file_path, frame)
         if save_result:

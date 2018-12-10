@@ -1,5 +1,5 @@
 import os
-import glob
+from glob import glob
 from collections import OrderedDict
 
 try:
@@ -15,16 +15,17 @@ import click
 def classify(faces_output_path):
     items = os.listdir(faces_output_path)
     if len(items) == 0:
-        raise Exception('no items in path')
+        raise Exception('no items in the path')
 
     class_names = OrderedDict()
 
-    face_to_descriptor_file_name = 'face_to_descriptor.pickle'
-    if face_to_descriptor_file_name not in items:
-        raise Exception('file \"%s\" not found' % face_to_descriptor_file_name)
-    with open(os.path.join(faces_output_path, face_to_descriptor_file_name), 'rb') as infile:
-        face_to_descriptor = pickle.load(infile)
+    frame_face_descriptors_file_name = 'frame_face_descriptors.pickle'
+    if frame_face_descriptors_file_name not in items:
+        raise Exception('file \"%s\" not found' % frame_face_descriptors_file_name)
+    with open(os.path.join(faces_output_path, frame_face_descriptors_file_name), 'rb') as infile:
+        frame_face_descriptors = pickle.load(infile)
 
+    image_file_suffix = '.jpg'
     descriptors = []
     labels = []
 
@@ -36,11 +37,16 @@ def classify(faces_output_path):
                 face_label = int(label_and_name[0])
                 class_names[face_label] = label_and_name[1]
                 #
-                for f in glob.glob(os.path.join(label_folder_path, '*.jpg')):
-                    face_id = os.path.basename(f)[:-4]
-                    if os.path.isfile(f) and len(face_id) > 0:
-                        descriptors.append(np.asarray(face_to_descriptor[face_id]))
-                        labels.append(face_label)
+                for f in glob(os.path.join(label_folder_path, '???*{}'.format(image_file_suffix))):
+                    if os.path.isfile(f):
+                        image_filename = os.path.basename(f)
+                        pos = image_filename.find('_')
+                        if pos > 0:
+                            frame_num = int(image_filename[:pos])
+                            face_descriptors = frame_face_descriptors[frame_num]
+                            for face_descriptor in face_descriptors:
+                                descriptors.append(np.asarray(face_descriptor))
+                                labels.append(face_label)
 
     model = SVC(kernel='linear', probability=True)
     model.fit(descriptors, labels)

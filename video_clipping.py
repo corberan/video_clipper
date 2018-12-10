@@ -1,7 +1,7 @@
 import os
 from collections import OrderedDict
-import glob
-import pims
+from glob import glob
+import imageio
 import click
 
 
@@ -40,7 +40,7 @@ def clip(video_file_path, face_classes_path, split_blank_duration):
     for i, name in enumerate(class_names_list):
         print('{}: {}'.format(i, name))
 
-    user_input = input()
+    user_input = input('> ')
     selected_name = class_names_list[int(user_input)]
     print('you select {}'.format(selected_name))
 
@@ -48,7 +48,7 @@ def clip(video_file_path, face_classes_path, split_blank_duration):
     for label, name in class_names.items():
         if name == selected_name:
             label_folder_path = os.path.join(face_classes_path, '{}-{}'.format(label, name))
-            for f in glob.glob(os.path.join(label_folder_path, '*.jpg')):
+            for f in glob(os.path.join(label_folder_path, '???*.jpg')):
                 if os.path.isfile(f):
                     image_filename = os.path.basename(f)
                     pos = image_filename.find('_')
@@ -64,8 +64,11 @@ def clip(video_file_path, face_classes_path, split_blank_duration):
         frame_nums_list = list(frame_nums)
         frame_nums_list.sort()
 
-        vid = pims.Video(video_file_path)
-        blank_frames_count = vid.frame_rate * split_blank_duration
+        reader = imageio.get_reader(video_file_path)
+        meta_data = reader.get_meta_data()
+        video_fps = meta_data['fps']
+
+        blank_frames_count = video_fps * split_blank_duration
 
         result = []
         section = [frame_nums_list[0]]
@@ -74,11 +77,11 @@ def clip(video_file_path, face_classes_path, split_blank_duration):
             if frame_num - section[-1] < blank_frames_count:
                 section.append(frame_num)
             else:
-                result.append(get_duration_str(section[0], section[-1], vid.frame_rate))
+                result.append(get_duration_str(section[0], section[-1], video_fps))
                 section = [frame_num]
 
         if len(result) == 0:
-            result.append(get_duration_str(section[0], section[-1], vid.frame_rate))
+            result.append(get_duration_str(section[0], section[-1], video_fps))
 
         print(result)
 
