@@ -15,18 +15,23 @@ def mtcnn_face_detector(gpu_memory_fraction):
         with sess.as_default():
             pnet, rnet, onet = align.detect_face.create_mtcnn(sess, None)
 
-    def detect_face(frame, _):
-        bounding_boxes, _ = align.detect_face.detect_face(frame, minsize, pnet, rnet, onet, threshold, factor)
-        return [dlib.rectangle(*[int(p) for p in np.squeeze(bounding_box[0:4])]) for bounding_box in bounding_boxes]
+    def detect_faces(frames, upsample_num_times: int):
+        for frame in frames:
+            if upsample_num_times > 0:
+                frame = dlib.resize_image(frame, scale=upsample_num_times)
+            bounding_boxes, _ = align.detect_face.detect_face(frame, minsize, pnet, rnet, onet, threshold, factor)
+            yield (dlib.rectangle(*[int(p) for p in np.squeeze(bounding_box[0:4])]) for bounding_box in
+                   bounding_boxes), frame
 
-    return detect_face
+    return detect_faces
 
 
 def dlib_cnn_face_detector(model_location):
     face_detector = dlib.cnn_face_detection_model_v1(model_location)
 
-    def detect_face(frame, upsample_num_times):
-        dets = face_detector(frame, upsample_num_times)
-        return [det.rect for det in dets]
+    def detect_faces(frames, upsample_num_times: int):
+        frame_list = [frame for frame in frames]
+        frame_dets_list = face_detector(frame_list, upsample_num_times)
+        return zip([frame_dets for frame_dets in frame_dets_list], frame_list)
 
-    return detect_face
+    return detect_faces
