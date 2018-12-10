@@ -4,4 +4,4 @@
 
 [How to use](https://github.com/AlfnXd/video_clipper/wiki/How-to-use "how to use")
 
-*人脸识别模型来自* [http://www.cstor.cn/textdetail_12508.html](http://www.cstor.cn/textdetail_12508.html)
+*人脸识别模型来自 [http://www.cstor.cn/textdetail_12508.html](http://www.cstor.cn/textdetail_12508.html)*
